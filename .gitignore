@@ -1,0 +1,6 @@
+*.npz
+input/data/train/*
+input/data/test/*
+*.jpg
+*.jpeg
+*.png
