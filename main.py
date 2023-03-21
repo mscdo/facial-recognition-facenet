@@ -73,8 +73,8 @@ def load_dataset(dir):
     # list for faces and labels
     X, y = list(), list()
     for subdir in os.listdir(dir):
-        #path = dir + subdir + '/'
-        path = dir 
+        path = dir + subdir + '/'
+        # path = dir 
         print('PATH  :   ', path)
         faces = load_face(path)
         labels = [subdir for i in range(len(faces))]
