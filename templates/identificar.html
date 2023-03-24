@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static',filename='styles/style.css') }}"
+    />
+    <meta charset="UTF-8" />
+    <title>Upload Face with ID</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Identificação</h1>
+          <hr />
+          <label>Escolha uma imagem</label>
+          <form
+            action="/identificar"
+            method="POST"
+            enctype="multipart/form-data"
+          >
+            <div class="form-group">
+              <div class="custom-file">
+                <input
+                  type="file"
+                  class="custom-file-input"
+                  name="image"
+                  id="image"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn btn-primary button-4">
+                Carregar imagem
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="images">
+        {% if uploaded_image %}
+        <img
+          src="{{ url_for('send_uploaded_file', filename=uploaded_image) }}"
+        />
+        {% endif %} {% if predicted_image %}
+
+        <img
+          src="{{ url_for('send_uploaded_file', filename=predicted_image) }}"
+        />
+        {% endif %}
+        <p>"{{ texto }} "</p>
+      </div>
+    </div>
+  </body>
+</html>
