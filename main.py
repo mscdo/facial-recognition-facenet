@@ -23,50 +23,13 @@ TARGET_FOLDER = 'target/identify'
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-def main():
-
-    # load train dataset
-    trainX, trainy = face_recognition.load_dataset('./input/data/train/')
-    print(trainX.shape, trainy.shape)
-    # load test dataset
-    testX, testy = face_recognition.load_dataset('./input/data/test/')
-    print(testX.shape, testy.shape)
-
-    # save and compress the dataset for further use
-    np.savez_compressed('geocontrol.npz', trainX, trainy, testX, testy)
-
-    # load the face dataset
-    data = np.load('geocontrol.npz')
-    trainX, trainy, testX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
-    print('Loaded: ', trainX.shape, trainy.shape, testX.shape, testy.shape)
-    # load the facenet model
-    facenet_model = load_model('./models/facenet_keras.h5')
-    print('Loaded Model')
-       # convert each face in the train set into embedding
-    emdTrainX = list()
-    for face in trainX:
-        emd = face_recognition.get_embedding(facenet_model, face)
-        emdTrainX.append(emd)       
-    emdTrainX = np.asarray(emdTrainX)
-    print('EMDTRAINX ************************************', emdTrainX.shape)
-    # convert each face in the test set into embedding
-    emdTestX = list()
-    for face in testX:
-        emd = face_recognition.get_embedding(facenet_model, face)
-        emdTestX.append(emd)
-        
-    emdTestX = np.asarray(emdTestX)
-    print('EMDTESTX ************************************', emdTestX.shape)
-    # save arrays to one file in compressed format
-    np.savez_compressed('geocontrol-embeddings.npz', emdTrainX, trainy, emdTestX, testy)
-    
-    model, in_encoder, out_encoder = face_recognition.create_model(emdTrainX, trainy, emdTestX, testy)
-    texto = face_recognition.identify_new_face(model, in_encoder, out_encoder)
-    return texto
-    # plt.imshow(photo)
-    # plt.title(id)
-    # plt.show()
-
+app= Flask(__name__, template_folder='templates')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['INPUT_TRAIN_FOLDER'] = INPUT_TRAIN_FOLDER
+app.config['TARGET_FOLDER'] = TARGET_FOLDER
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0 
+app.secret_key = 'geocontrol'
+app.config["CACHE_TYPE"] = "null"
 
 def identify_face():
      # load the face dataset
@@ -75,6 +38,7 @@ def identify_face():
     model, in_encoder, out_encoder = face_recognition.create_model(emdTrainX, trainy, emdTestX, testy)
     texto, name = face_recognition.identify_new_face(model, in_encoder, out_encoder)
     return texto,name 
+
 
 def clean_folder(folder:str):
     for filename in os.listdir(folder):
@@ -87,12 +51,7 @@ def clean_folder(folder:str):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-app= Flask(__name__, template_folder='templates')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['INPUT_TRAIN_FOLDER'] = INPUT_TRAIN_FOLDER
-app.config['TARGET_FOLDER'] = TARGET_FOLDER
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0 
-app.secret_key = 'geocontrol'
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -102,18 +61,66 @@ def allowed_file(filename):
 def index():
     return 'INdex'
 
-
-
 @app.route('/adicionar',  methods=['GET', 'POST'])
 def adicionar():
-    return 'Oi'
+    test_images_name=''
+    train_images_name=''
+    texto=''
+    label=''
+   
+    clean_folder(UPLOAD_FOLDER+'/')
+    if request.method == "POST":
+        # check if the post request has the file part
+        
+        if 'label' in request.form:
+            label = request.form["label"]        
+            if 'trainimages' in  request.files: 
+                # label = request.form["text"]         
+                # cria diretorio com o nome da label fornecida
+                trainimages = request.files.getlist('trainimages')
+                if os.path.exists(os.path.join(INPUT_TRAIN_FOLDER, label)):
+                    os.mkdir(os.path.join(INPUT_TRAIN_FOLDER, label+'-1'))
+                else:
+                    os.mkdir(os.path.join(INPUT_TRAIN_FOLDER, label))
+            
+                # salva imagens de treino e copia para pasta de treino do dataset
+                for file in trainimages:
+                    file.save(os.path.join(UPLOAD_FOLDER, file.filename))
+                    shutil.copy2(os.path.join(UPLOAD_FOLDER, file.filename), os.path.join(INPUT_TRAIN_FOLDER, label, file.filename ))
+                    
+                    
+                #print("stored as:" + os.path.join(INPUT_TRAIN_FOLDER, label))    
+                
+                train_image_names = os.listdir(os.path.join(INPUT_TRAIN_FOLDER, label))
+                
+            if 'testimages' in request.files:
+                if os.path.exists(os.path.join(INPUT_TEST_FOLDER, label)):
+                    os.mkdir(os.path.join(INPUT_TEST_FOLDER, label+'-1'))
+                else:
+                    os.mkdir(os.path.join(INPUT_TEST_FOLDER, label))
+              
+                #salva imagens de teste e copia para pasta de teste do dataset
+                testimages=request.files.getlist("testimages")
+                for file in testimages:
+                    file.save(os.path.join(UPLOAD_FOLDER, file.filename))
+                    shutil.copy2(os.path.join(UPLOAD_FOLDER, file.filename), os.path.join(INPUT_TEST_FOLDER, label, file.filename ))
+                print("stored as:" + os.path.join(INPUT_TEST_FOLDER, label))
+                test_image_names = os.listdir(os.path.join(INPUT_TEST_FOLDER, label))
+            face_recognition.train_dataset()
+            if train_image_names:
+                return render_template("adicionar.html", test_images_name=test_image_names, train_image_names=train_image_names, texto='Rede treinada com novas imagem!')
+            else:
+                return render_template("adicionar.html", texto='Não foi possível treinar a rede. Verifique o arquivo')  
+    return render_template("adicionar.html")
+
 
 @app.route('/identificar', methods=['GET', 'POST'])
 def identificar():
     filename =''
     predicted_image=''
     image=''
-    
+    clean_folder(UPLOAD_FOLDER+'/')
+    clean_folder(TARGET_FOLDER+'/')
     if request.method == "POST":
         # check if the post request has the file part
         
@@ -121,8 +128,7 @@ def identificar():
             image = request.files["image"]           
             # print(image + "Uploaded to Faces")
             # flash('Image successfully Uploaded to Faces.')
-            clean_folder(UPLOAD_FOLDER+'/')
-            clean_folder(TARGET_FOLDER+'/')
+           
             image.save(os.path.join(UPLOAD_FOLDER, image.filename))
             shutil.copy2(UPLOAD_FOLDER + '/' + image.filename, TARGET_FOLDER +  '/' + image.filename )
             filename = os.path.join(UPLOAD_FOLDER, image.filename)
@@ -146,7 +152,7 @@ def send_uploaded_file(filename=''):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-# @app.after_request
+# @app.before_request
 # def add_header(r):
 #     """
 #     Add headers to both force latest IE rendering engine or Chrome Frame,

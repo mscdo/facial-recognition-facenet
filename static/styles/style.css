@@ -31,19 +31,17 @@ label {
 }
 
 label,
-input[type="image"] {
+input[type="image"], input[type="text"] {
   margin-top: 1rem;
  
 }
-.custom-file{
-  width: fit-content;
-}
+
 
 form {
  width: 500px;
 }
 
-input[type="image"] {
+input[type="image"],  input[type="text"]  {
   width: 200px;
 }
 

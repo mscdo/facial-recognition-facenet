@@ -19,6 +19,52 @@ import face_recognition
 MINIMUN_MATCH = 50
 
 
+
+
+def train_dataset():
+    # load train dataset
+    trainX, trainy = face_recognition.load_dataset('./input/data/train/')
+    print(trainX.shape, trainy.shape)
+    # load test dataset
+    testX, testy = face_recognition.load_dataset('./input/data/test/')
+    # print(testX.shape, testy.shape)
+
+    # # save and compress the dataset for further use
+    # np.savez_compressed('geocontrol.npz', trainX, trainy, testX, testy)
+
+    # # load the face dataset
+    # data = np.load('geocontrol.npz')
+    # trainX, trainy, testX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
+    print('Loaded: ', trainX.shape, trainy.shape, testX.shape, testy.shape)
+    # load the facenet model
+    facenet_model = load_model('./models/facenet_keras.h5')
+    print('Loaded Model')
+       # convert each face in the train set into embedding
+    emdTrainX = list()
+    for face in trainX:
+        emd = face_recognition.get_embedding(facenet_model, face)
+        emdTrainX.append(emd)       
+    emdTrainX = np.asarray(emdTrainX)
+    print('EMDTRAINX ************************************', emdTrainX.shape)
+    # convert each face in the test set into embedding
+    emdTestX = list()
+    for face in testX:
+        emd = face_recognition.get_embedding(facenet_model, face)
+        emdTestX.append(emd)
+        
+    emdTestX = np.asarray(emdTestX)
+    print('EMDTESTX ************************************', emdTestX.shape)
+    # save arrays to one file in compressed format
+    np.savez_compressed('geocontrol-embeddings.npz', emdTrainX, trainy, emdTestX, testy)
+    
+    model, in_encoder, out_encoder = face_recognition.create_model(emdTrainX, trainy, emdTestX, testy)
+    return model
+    # texto = face_recognition.identify_new_face(model, in_encoder, out_encoder)
+    # return texto
+    # plt.imshow(photo)
+    # plt.title(id)
+    # plt.show()
+
 def extract_face(filename, required_size=(160, 160)):
     # load image from file
     image = Image.open(filename)
@@ -104,11 +150,8 @@ def create_model(emdTrainX, trainy, emdTestX, testy):
     
     return model, in_encoder, out_encoder
 
-
-
 def to_map(predicted_name: str, probability:str):
     return { predicted_name, probability}
-    
     
 def identify_new_face(model, in_encoder, out_encoder):
     testX, testy = face_recognition.load_dataset('target/')
