@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static',filename='styles/style.css') }}"
+    />
+    <meta charset="UTF-8" />
+    <title>Upload Face with ID</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Adicionar à rede</h1>
+          <hr />
+          <label>Escolha uma imagem e um nome</label>
+          <form action="/adicionar" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+              <div class="custom-file">
+                <label>Imagens de treino: </label>
+                <input
+                  enctype="multipart/form-data"
+                  type="file"
+                  class="custom-file-input"
+                  name="trainimages"
+                  id="train-images"
+                  required
+                  multiple="multiple"
+                />
+                <br />
+                <label>Nome: </label>
+                <input
+                  type="text"
+                  class="text-input"
+                  name="label"
+                  id="image-label"
+                  required
+                />
+                <br />
+                <label>Imagens para teste: </label>
+                <input
+                  multiple="multiple"
+                  type="file"
+                  class="custom-file-input"
+                  name="testimages"
+                  id="test-images"
+                />
+                <button type="submit" class="btn btn-primary button-4">
+                  Carregar
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="images">
+        {%if train_image_names %} {% for name in train_image_names %}
+        <img src="{{ url_for('send_uploaded_file', filename=name) }}" />
+        {% endfor %} {% endif%} {%if test_image_names %} {% for nametest in
+        test_image_names %}
+        <img src="{{ url_for('send_uploaded_file', filename=nametest) }}" />
+        {% endfor %} {% endif%}
+        <p>"{{ texto }} "</p>
+      </div>
+    </div>
+  </body>
+</html>
