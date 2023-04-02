@@ -1,29 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static',filename='styles/style.css') }}"
+    />
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>My Website</title>
-    <link rel="stylesheet" href="./style.css" />
-    <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+    <title>Upload Face with ID</title>
   </head>
   <body>
-    <main>
-      <form action="myform.cgi">
-        <input
-          type="file"
-          name="fileupload"
-          value="fileupload"
-          id="fileupload"
+    <form action="/">
+      <button type="submit" class="btn btn-primary button-4">Voltar</button>
+    </form>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Identifica    o</h1>
+          <hr />
+          <label>Escolha uma imagem</label>
+          <form
+            class="box"
+            action="/identificar"
+            method="POST"
+            enctype="multipart/form-data"
+          >
+            <div class="form-group">
+              <div class="custom-file">
+                <input
+                  type="file"
+                  class="custom-file-input"
+                  name="image"
+                  id="image"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn btn-primary button-4">
+                Carregar imagem
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="images">
+        {% if uploaded_image %}
+        <img
+          src="{{ url_for('send_uploaded_file', filename=uploaded_image) }}"
         />
-        <label for="fileupload"> Select a file to upload</label> <br /><input
-          type="image"
-          src="/wp-content/uploads/sendform.png"
-          alt="Submit"
-          width="100"
+        {% endif %} {% if predicted_image %}
+
+        <img
+          src="{{ url_for('send_uploaded_file', filename=predicted_image) }}"
         />
-      </form>
-    </main>
+        {% endif %}
+        <p>"{{ texto }} "</p>
+      </div>
+    </div>
   </body>
 </html>
+
+

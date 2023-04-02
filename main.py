@@ -1,10 +1,8 @@
 import mtcnn
 # print(mtcnn.__version__)
 import os
-import numpy as np # linear algebra
+import numpy as np  # linear algebra
 from mtcnn.mtcnn import MTCNN
-import cv2
-import matplotlib as plt
 from keras.models import load_model
 from PIL import Image
 from werkzeug.utils import secure_filename
@@ -42,7 +40,6 @@ def extract_face(filename, required_size=(160, 160)):
     return face_array
 
 
-
 def load_face(dir):
     faces = list()
     # enumerate files
@@ -53,12 +50,13 @@ def load_face(dir):
         faces.append(face)
     return faces
 
+
 def load_dataset(dir):
     # list for faces and labels
     X, y = list(), list()
     for subdir in os.listdir(dir):
         path = dir + subdir + '/'
-        # path = dir 
+        # path = dir
         # print('PATH  :   ', path)
         faces = load_face(path)
         labels = [subdir for i in range(len(faces))]
@@ -66,8 +64,6 @@ def load_dataset(dir):
         X.extend(faces)
         y.extend(labels)
     return np.asarray(X), np.asarray(y)
-
-
 
 
 def get_embedding(model, face):
@@ -83,64 +79,59 @@ def get_embedding(model, face):
     return yhat[0]
 
 
-
-
-
 def run_train_dataset():
     # load train dataset
     trainX, trainy = load_dataset('input/data/train/')
     # print(trainX.shape, trainy.shape)
-    
+
     # save and compress the dataset for further use
     np.savez_compressed('geocontrol_train.npz', trainX, trainy)
-    
+
     data = np.load('geocontrol_train.npz')
     trainX, trainy = data['arr_0'], data['arr_1']
     # print('Loaded: ', trainX.shape, trainy.shape)
-    
+
     # load the facenet model
     facenet_model = load_model('models/facenet_keras.h5')
     # print('Loaded Model')
-    
+
     # convert each face in the train set into embedding
     emdTrainX = list()
     for face in trainX:
         emd = get_embedding(facenet_model, face)
         emdTrainX.append(emd)
-        
-        
+
     emdTrainX = np.asarray(emdTrainX)
     # print('EMDTRAINX ************************************', emdTrainX.shape)
-    
+
     # save arrays to one file in compressed format
     np.savez_compressed('geocontrol-embeddings_train.npz', emdTrainX, trainy)
-    return  emdTrainX, trainy
+    return emdTrainX, trainy
 
 
 def run_test_dataset():
     # load test dataset
     testX, testy = load_dataset('./target/')
     # print(testX.shape, testy.shape)
-    
+
     # save and compress the dataset for further use
     np.savez_compressed('geocontrol_test.npz', testX, testy)
-    
+
     # load the face dataset
     data = np.load('geocontrol_test.npz')
     testX, testy = data['arr_0'], data['arr_1']
     # print('Loaded: ', testX.shape, testy.shape)
-    
 
     # load the facenet model
     facenet_model = load_model('models/facenet_keras.h5')
     # print('Loaded Model')
-    
+
     # convert each face in the test set into embedding
     emdTestX = list()
     for face in testX:
         emd = get_embedding(facenet_model, face)
         emdTestX.append(emd)
-        
+
     emdTestX = np.asarray(emdTestX)
     # print('EMDTESTX ************************************', emdTestX.shape)
 
@@ -150,7 +141,7 @@ def run_test_dataset():
     # print(emdTestX)
     # print('TESTY ************************************')
     # print(testy)
-    return  emdTestX, testy
+    return emdTestX, testy
 
 
 def run_test():
@@ -159,18 +150,17 @@ def run_test():
     from sklearn.preprocessing import Normalizer
     from sklearn.svm import SVC
 
-
     data = np.load('geocontrol-embeddings_test.npz')
     emdTrainX, trainy = data['arr_0'], data['arr_1']
-    
+
     data = np.load('geocontrol-embeddings_train.npz')
     emdTestX, testy = data['arr_0'], data['arr_1']
-    
-      
+
     # load test dataset
     testX, testy = load_dataset('input/data/test/')
     print(testX.shape, testy.shape)
-    print("Dataset: train=%d, test=%d" % (emdTrainX.shape[0], emdTestX.shape[0]))
+    print("Dataset: train=%d, test=%d" %
+          (emdTrainX.shape[0], emdTestX.shape[0]))
     # normalize input vectors
     in_encoder = Normalizer()
     emdTrainX_norm = in_encoder.transform(emdTrainX)
@@ -192,10 +182,9 @@ def run_test():
     # summarize
     # print('Accuracy: train=%.3f, test=%.3f' % (score_train*100, score_test*100))
 
-
-    from random import choice 
+    from random import choice
     # select a random face from test set
-    
+
     """
     AQUI ENTRARIA A FOTO QUE EU QUERO TESTAR.
     A DIFERENÇA É QUE ELE JÁ TINHA FEITO O PROCESSO PARA TODAS AS IMAGENS PRO TESTE
@@ -213,9 +202,9 @@ def run_test():
     yhat_prob = model.predict_proba(samples)
     # get name
     class_index = yhat_class[0]
-    class_probability = yhat_prob[0,class_index] * 100
+    class_probability = yhat_prob[0, class_index] * 100
     predict_names = out_encoder.inverse_transform(yhat_class)
-    all_names = out_encoder.inverse_transform([0,1,2])
+    all_names = out_encoder.inverse_transform([0, 1, 2])
     predicted = 'Predicted: %s (%.3f)' % (predict_names[0], class_probability)
     # print('Predicted: \n%s \n%s' % (all_names, yhat_prob[0]*100))
     expected = 'Expected: %s' % random_face_name[0]
@@ -225,7 +214,8 @@ def run_test():
     # title = '%s (%.3f)' % (predict_names[0], class_probability)
     # plt.title(title)
     # plt.show()
-     
+
+
 def run():
     emdTrainX, trainy = run_train_dataset()
     emdTestX, testy = run_test_dataset()
@@ -233,10 +223,7 @@ def run():
     return texto
 
 
-            
-
-
-app= Flask(__name__, template_folder='templates')
+app = Flask(__name__, template_folder='templates')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.secret_key = 'geocontrol'
 
@@ -246,10 +233,10 @@ def index():
     return 'INdex'
 
 
-
 @app.route('/adicionar')
 def adicionar():
     return 'Oi'
+
 
 @app.route('/upload-image', methods=['GET', 'POST'])
 def upload_image():
@@ -264,11 +251,11 @@ def upload_image():
             return render_template("upload.html", uploaded_image=filename)
     return render_template("upload.html")
 
+
 @app.route('/uploads/<filename>')
 def send_uploaded_file(filename=''):
-    
-    return send_from_directory(UPLOAD_FOLDER, filename)
 
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 
 @app.route('/identificar', methods=['GET', 'POST'])
@@ -277,7 +264,6 @@ def identificar():
     run_test_dataset()
     texto = run_test()
     return texto
-  
 
 
 # app.run(host='0.0.0.0')
