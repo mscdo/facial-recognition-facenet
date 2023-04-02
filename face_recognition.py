@@ -1,3 +1,4 @@
+import numpy as np  # linear algebra
 import os
 from sklearn.svm import SVC
 from sklearn.preprocessing import Normalizer
@@ -8,6 +9,7 @@ from keras.models import load_model
 from mtcnn.mtcnn import MTCNN
 import numpy as np  # linear algebra
 import mtcnn
+
 print(mtcnn.__version__)
 
 
