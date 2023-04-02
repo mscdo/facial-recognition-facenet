@@ -10,6 +10,9 @@
     <title>Upload Face with ID</title>
   </head>
   <body>
+    <form action="/">
+      <button type="submit" class="btn btn-primary button-4">Voltar</button>
+    </form>
     <div class="container">
       <div class="row">
         <div class="col">
@@ -17,6 +20,7 @@
           <hr />
           <label>Escolha uma imagem</label>
           <form
+            class="box"
             action="/identificar"
             method="POST"
             enctype="multipart/form-data"
@@ -54,3 +58,5 @@
     </div>
   </body>
 </html>
+
+
