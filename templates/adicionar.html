@@ -10,13 +10,21 @@
     <title>Upload Face with ID</title>
   </head>
   <body>
+    <form action="/">
+      <button type="submit" class="btn btn-primary button-4">Voltar</button>
+    </form>
     <div class="container">
       <div class="row">
         <div class="col">
           <h1>Adicionar à rede</h1>
           <hr />
           <label>Escolha uma imagem e um nome</label>
-          <form action="/adicionar" method="POST" enctype="multipart/form-data">
+          <form
+            class="box"
+            action="/adicionar"
+            method="POST"
+            enctype="multipart/form-data"
+          >
             <div class="form-group">
               <div class="custom-file">
                 <label>Imagens de treino: </label>
@@ -41,11 +49,13 @@
                 <br />
                 <label>Imagens para teste: </label>
                 <input
+                  enctype="multipart/form-data"
                   multiple="multiple"
                   type="file"
                   class="custom-file-input"
                   name="testimages"
                   id="test-images"
+                  required
                 />
                 <button type="submit" class="btn btn-primary button-4">
                   Carregar

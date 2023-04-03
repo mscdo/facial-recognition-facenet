@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static',filename='styles/style.css') }}"
+    />
+    <meta charset="UTF-8" />
+    <title>Upload Face with ID</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Escolha sua próxima ação:</h1>
+          <hr />
+
+          <form action="/adicionar">
+            <button type="submit" class="btn btn-primary button-4">
+              Adicionar novo rosto à base de dados
+            </button>
+          </form>
+          <form action="/identificar">
+            <button type="submit" class="btn btn-primary button-4">
+              Identificar rosto
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
