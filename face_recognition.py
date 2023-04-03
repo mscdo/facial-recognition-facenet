@@ -13,7 +13,7 @@ import mtcnn
 print(mtcnn.__version__)
 
 
-MINIMUM_MATCH = 30
+MINIMUM_MATCH = 45
 
 
 def create_model(emdTrainX, trainy, emdTestX, testy):
@@ -115,8 +115,14 @@ def extract_face(filename, required_size=(160, 160)):
     detector = MTCNN()
     # detect faces in the image
     results = detector.detect_faces(pixels)
+
     # extract the bounding box from the first face
-    x1, y1, width, height = results[0]['box']
+    try:
+        x1, y1, width, height = results[0]['box']
+    except:
+        raise IndexError(
+            'Não foi encontrado um rosto na foto. Favor enviar foto válida.', filename)
+
     # deal with negative pixel index
     x1, y1 = abs(x1), abs(y1)
     x2, y2 = x1 + width, y1 + height
@@ -197,6 +203,8 @@ def identify_new_face(model, in_encoder, out_encoder):
     all_names = out_encoder.inverse_transform(array)
     # Verifica se a probabilidade    maior que 60%
     if (class_probability < MINIMUM_MATCH):
-        return f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados', ''
-    texto, name = f' {predict_names[0]} , {round(class_probability, 2)} %', predict_names[0]
+        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados', ''
+    # texto, name = f' {predict_names[0]} , {round(class_probability, 2)} %', predict_names[0]
+    else:
+        texto, name = f'{round(class_probability, 2)}%', predict_names[0]
     return texto, name
