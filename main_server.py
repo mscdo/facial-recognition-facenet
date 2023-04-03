@@ -10,10 +10,7 @@ import base64
 import json
 from PIL import Image
 import io
-from io import BytesIO
-import requests
-import traceback
-import logging
+import cv2
 
 UPLOAD_FOLDER = 'static/images'
 INPUT_TRAIN_FOLDER = 'input/data/train'
@@ -74,6 +71,13 @@ def index():
     return render_template("index.html")
 
 
+@app.route('/testes')
+def testes():
+    ok = face_recognition.apply_gaussian_blur('./input/data/train')
+
+    return jsonify(ok)
+
+
 @app.route('/adicionar',  methods=['GET', 'POST'])
 def adicionar():
 
@@ -92,10 +96,13 @@ def adicionar():
             if not os.path.exists(os.path.join(INPUT_TRAIN_FOLDER, label)):
                 os.mkdir(os.path.join(INPUT_TRAIN_FOLDER, label))
 
+            count = 0
             # salva imagens de treino e copia para pasta de treino do dataset
             for file in trainimages:
+                count += 1
+                howmany = len(trainimages)
                 file.save(os.path.join(
-                    INPUT_TRAIN_FOLDER, label, file.filename))
+                    INPUT_TRAIN_FOLDER, label, 'image-' + {howmany+count} + '.png'))
             train_image_names = os.listdir(
                 os.path.join(INPUT_TRAIN_FOLDER, label))
 

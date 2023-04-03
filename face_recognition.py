@@ -9,11 +9,29 @@ from keras.models import load_model
 from mtcnn.mtcnn import MTCNN
 import numpy as np  # linear algebra
 import mtcnn
+import cv2
 
 print(mtcnn.__version__)
 
 
 MINIMUM_MATCH = 45
+
+
+# def apply_haar(filename):
+#     img = cv2.imread(filename)
+#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     face_cascade = cv2.CascadeClassifier(
+#         '/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
+
+#     faces = face_cascade.detectMultiScale(img, 1.3, 5)
+#     for (x, y, w, h) in faces:
+#         img = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+#         roi_gray = gray[y:y+h, x:x+w]
+#         roi_color = img[y:y+h, x:x+w]
+#     cv2.imwrite('output.png', img)
+#     cv2.imshow('img', img)
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
 
 
 def create_model(emdTrainX, trainy, emdTestX, testy):
@@ -97,11 +115,6 @@ def train_dataset():
     model, in_encoder, out_encoder = create_model(
         emdTrainX, trainy, emdTestX, testy)
     return model, in_encoder, out_encoder
-    # texto = face_recognition.identify_new_face(model, in_encoder, out_encoder)
-    # return texto
-    # plt.imshow(photo)
-    # plt.title(id)
-    # plt.show()
 
 
 def extract_face(filename, required_size=(160, 160)):
@@ -159,7 +172,29 @@ def load_dataset(dir):
               (len(faces), subdir))  # print progress
         X.extend(faces)
         y.extend(labels)
+        print('FACES:',  faces)
     return np.asarray(X), np.asarray(y)
+
+
+# def rotate_image(img):
+#     rows, cols = img.shape[:2]
+#     M = cv2.getRotationMatrix2D((cols/2, rows/2), < angle >, 1)
+#     img_rotated = cv2.warpAffine(face_orig, M, (cols, rows))
+
+
+def apply_gaussian_blur(dir):
+    for subdir in os.listdir(dir):
+        path = os.path.join(dir, subdir) + '/'
+        for filename in os.listdir(path):
+            print(os.path.join(path, filename))
+            img = cv2.imread(os.path.join(path, filename))
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            smooth = cv2.GaussianBlur(gray, (125, 125), 0)
+            division = cv2.divide(gray, smooth, scale=255)
+
+            cv2.imwrite(os.path.join(path, filename), division)
+    return 'OK'
 
 
 def get_embedding(model, face):
@@ -175,12 +210,10 @@ def get_embedding(model, face):
     return yhat[0]
 
 
-def to_map(predicted_name: str, probability: str):
-    return {predicted_name, probability}
-
-
-def identify_new_face(model, in_encoder, out_encoder):
+def identify_new_face(model: SVC, in_encoder: LabelEncoder, out_encoder: LabelEncoder):
+    apply_gaussian_blur('target/')
     testX, testy = load_dataset('target/')
+
     print(testX.shape, testy.shape)
     facenet_model = load_model('./models/facenet_keras.h5')
     emdTestX = list()
