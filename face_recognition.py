@@ -14,41 +14,19 @@ import cv2
 print(mtcnn.__version__)
 
 
-MINIMUM_MATCH = 45
+MINIMUM_MATCH = 30
 
 
-# def apply_haar(filename):
-#     img = cv2.imread(filename)
-#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     face_cascade = cv2.CascadeClassifier(
-#         '/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
-
-#     faces = face_cascade.detectMultiScale(img, 1.3, 5)
-#     for (x, y, w, h) in faces:
-#         img = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
-#         roi_gray = gray[y:y+h, x:x+w]
-#         roi_color = img[y:y+h, x:x+w]
-#     cv2.imwrite('output.png', img)
-#     cv2.imshow('img', img)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-
-def create_model(emdTrainX, trainy, emdTestX, testy):
-    print("Dataset: train=%d, test=%d" %
-          (emdTrainX.shape[0], emdTestX.shape[0]))
+# Ver direitinho depois
+def get_model_score(model: SVC, emdTestX, trainy, testy, emdTrainX_norm):
     # normalize input vectors
     in_encoder = Normalizer()
-    emdTrainX_norm = in_encoder.transform(emdTrainX)
     emdTestX_norm = in_encoder.transform(emdTestX)
     # label encode targets
     out_encoder = LabelEncoder()
     out_encoder.fit(trainy)
     trainy_enc = out_encoder.transform(trainy)
     testy_enc = out_encoder.transform(testy)
-    # fit model
-    model = SVC(kernel='linear', probability=True)
-    model.fit(emdTrainX_norm, trainy_enc)
     # predict
     yhat_train = model.predict(emdTrainX_norm)
     yhat_test = model.predict(emdTestX_norm)
@@ -58,6 +36,22 @@ def create_model(emdTrainX, trainy, emdTestX, testy):
     # summarize
     print('Accuracy: train=%.3f, test=%.3f' %
           (score_train*100, score_test*100))
+
+
+def create_model(emdTrainX, trainy):
+    print("Dataset: train=%d" % (emdTrainX.shape[0]))
+    # normalize input vectors
+    in_encoder = Normalizer()
+    emdTrainX_norm = in_encoder.transform(emdTrainX)
+
+    # label encode targets
+    out_encoder = LabelEncoder()
+    out_encoder.fit(trainy)
+    trainy_enc = out_encoder.transform(trainy)
+
+    # fit model
+    model = SVC(kernel='linear', probability=True)
+    model.fit(emdTrainX_norm, trainy_enc)
 
     return model, in_encoder, out_encoder
 
@@ -75,21 +69,45 @@ def get_embedding(model, face):
     return yhat[0]
 
 
-def train_dataset():
-    # load train dataset
-    trainX, trainy = load_dataset('./input/data/train/')
-    print(trainX.shape, trainy.shape)
+def train_test_dataset():
     # load test dataset
+
     testX, testy = load_dataset('./input/data/test/')
     # print(testX.shape, testy.shape)
 
+    # save and compress the dataset for further use
+    np.savez_compressed('geocontrol_test.npz', testX, testy)
+    # load the face dataset
+    # data = np.load('geocontrol_test.npz')
+    # testX, testy = data['arr_0'], data['arr_1']
+    print('Loaded TESTS: ', testX.shape, testy.shape)
+    # load the facenet model
+    facenet_model = load_model('./models/facenet_keras.h5')
+    print('Loaded Model')
+
+    # convert each face in the test set into embedding
+    emdTestX = list()
+    for face in testX:
+        emd = get_embedding(facenet_model, face)
+        emdTestX.append(emd)
+
+    emdTestX = np.asarray(emdTestX)
+    print('EMDTESTX ************************************', emdTestX.shape)
+
+
+def train_dataset():
+    # load train dataset
+    apply_gaussian_blur('./input/data/train/')
+    trainX, trainy = load_dataset('./input/data/train/')
+    print(trainX.shape, trainy.shape)
+
     # # save and compress the dataset for further use
-    # np.savez_compressed('geocontrol.npz', trainX, trainy, testX, testy)
+    # np.savez_compressed('geocontrol_train.npz', trainX, trainy)
 
     # # load the face dataset
-    # data = np.load('geocontrol.npz')
-    # trainX, trainy, testX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
-    print('Loaded: ', trainX.shape, trainy.shape, testX.shape, testy.shape)
+    # data = np.load('geocontrol_train.npz')
+    # trainX, trainy = data['arr_0'], data['arr_1']
+    print('Loaded: ', trainX.shape, trainy.shape,)
     # load the facenet model
     facenet_model = load_model('./models/facenet_keras.h5')
     print('Loaded Model')
@@ -100,20 +118,13 @@ def train_dataset():
         emdTrainX.append(emd)
     emdTrainX = np.asarray(emdTrainX)
     print('EMDTRAINX ************************************', emdTrainX.shape)
-    # convert each face in the test set into embedding
-    emdTestX = list()
-    for face in testX:
-        emd = get_embedding(facenet_model, face)
-        emdTestX.append(emd)
 
-    emdTestX = np.asarray(emdTestX)
-    print('EMDTESTX ************************************', emdTestX.shape)
     # save arrays to one file in compressed format
-    np.savez_compressed('geocontrol-embeddings.npz',
-                        emdTrainX, trainy, emdTestX, testy)
+    np.savez_compressed('geocontrol-embeddings_train.npz',
+                        emdTrainX, trainy)
 
     model, in_encoder, out_encoder = create_model(
-        emdTrainX, trainy, emdTestX, testy)
+        emdTrainX, trainy)
     return model, in_encoder, out_encoder
 
 
@@ -176,12 +187,6 @@ def load_dataset(dir):
     return np.asarray(X), np.asarray(y)
 
 
-# def rotate_image(img):
-#     rows, cols = img.shape[:2]
-#     M = cv2.getRotationMatrix2D((cols/2, rows/2), < angle >, 1)
-#     img_rotated = cv2.warpAffine(face_orig, M, (cols, rows))
-
-
 def apply_gaussian_blur(dir):
     for subdir in os.listdir(dir):
         path = os.path.join(dir, subdir) + '/'
@@ -190,11 +195,7 @@ def apply_gaussian_blur(dir):
             img = cv2.imread(os.path.join(path, filename))
 
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            smooth = cv2.GaussianBlur(gray, (125, 125), 0)
-            division = cv2.divide(gray, smooth, scale=255)
-
-            cv2.imwrite(os.path.join(path, filename), division)
-    return 'OK'
+            cv2.imwrite(os.path.join(path, filename), gray)
 
 
 def get_embedding(model, face):
@@ -230,13 +231,13 @@ def identify_new_face(model: SVC, in_encoder: LabelEncoder, out_encoder: LabelEn
     class_index = yhat_class[0]
     class_probability = yhat_prob[0, class_index] * 100
     predict_names = out_encoder.inverse_transform(yhat_class)
-    # Cria array de acordo com o n  mero das labels
+    # Cria array de acordo com a qtdade de labels (y)
     number_dir = len(next(os.walk(os.path.join('./input/data/train')))[1])
     array = np.arange(number_dir)
     all_names = out_encoder.inverse_transform(array)
     # Verifica se a probabilidade    maior que 60%
     if (class_probability < MINIMUM_MATCH):
-        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados', ''
+        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados.',  ''
     # texto, name = f' {predict_names[0]} , {round(class_probability, 2)} %', predict_names[0]
     else:
         texto, name = f'{round(class_probability, 2)}%', predict_names[0]

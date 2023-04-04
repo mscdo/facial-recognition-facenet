@@ -238,10 +238,10 @@ app.config["CACHE_TYPE"] = "null"
 
 def identify_face():
     # load the face dataset
-    data = np.load('geocontrol-embeddings.npz')
-    emdTrainX, trainy, emdTestX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
+    data = np.load('geocontrol-embeddings_train.npz')
+    emdTrainX, trainy = data['arr_0'], data['arr_1']
     model, in_encoder, out_encoder = face_recognition.create_model(
-        emdTrainX, trainy, emdTestX, testy)
+        emdTrainX, trainy,)
     texto, name = face_recognition.identify_new_face(
         model, in_encoder, out_encoder)
     return texto, name
