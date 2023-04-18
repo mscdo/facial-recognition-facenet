@@ -219,12 +219,6 @@ def run_test():
     # plt.show()
 
 
-def run():
-    emdTrainX, trainy = run_train_dataset()
-    emdTestX, testy = run_test_dataset()
-    texto = run_test()
-    return texto
-
 
 app = Flask(__name__, template_folder='templates')
 
@@ -363,4 +357,7 @@ def send_uploaded_file(filename=''):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
+
+# def run():
 app.run(host='0.0.0.0', port='5001')
+

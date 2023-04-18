@@ -34,17 +34,18 @@ app.config["CACHE_TYPE"] = "null"
 
 def identify_face():
     # load the face dataset
-    data = np.load('geocontrol-embeddings_train.npz')
+    data = np.load('geocontrol-embeddings.npz')
     emdTrainX, trainy = data['arr_0'], data['arr_1']
+    emdTestX, testy = data['arr_2'], data['arr_3']
     model, in_encoder, out_encoder = face_recognition.create_model(
-        emdTrainX, trainy)
+        emdTrainX, trainy, emdTestX, testy)
     texto, name = face_recognition.identify_new_face(
         model, in_encoder, out_encoder)
     return texto, name
 
 
 def clean_folder(folder: str):
-    for filename in os.listdir(folder):
+    for filename in os.listdir(folder+'/'):
         file_path = os.path.join(folder, filename)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
@@ -52,7 +53,7 @@ def clean_folder(folder: str):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+            return jsonify('Failed to delete %s. Reason: %s' % (file_path, e))
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -70,11 +71,6 @@ def get_response_image(image_path):
 def index():
     return render_template("index.html")
 
-
-@app.route('/testes')
-def testes():
-    face_recognition.train_dataset()
-    return jsonify('ok')
 
 
 @app.route('/adicionar',  methods=['GET', 'POST'])
@@ -130,10 +126,13 @@ def adicionar():
 
 @app.route('/identificar', methods=['GET', 'POST'])
 def identificar():
-    if (len(os.listdir(TARGET_FOLDER)) > 1):
-        clean_folder(TARGET_FOLDER + '/')
-    if (len(os.listdir(UPLOAD_FOLDER)) > 1):
-        clean_folder(UPLOAD_FOLDER + '/')
+
+    # if request.method == "GET":
+    #     return jsonify('ok'), 200
+
+        
+    clean_folder(TARGET_FOLDER + '/')
+    clean_folder(UPLOAD_FOLDER + '/')
     if request.method == "POST":
         if request.files['image']:
             name_file = "identify.png"
@@ -142,22 +141,13 @@ def identificar():
             shutil.copy2(os.path.join(UPLOAD_FOLDER, name_file),
                          os.path.join(TARGET_FOLDER, name_file))
             if (os.path.isfile(os.path.join(UPLOAD_FOLDER, name_file))):
-                if not (os.path.isfile('./geocontrol-embeddings_train.npz')):
-                    model, in_encode_, out_encode = face_recognition.train_dataset()
+                if not (os.path.isfile('./geocontrol-embeddings.npz')):
+                    face_recognition.train_dataset()
 
                 try:
                     texto, name = identify_face()
-
-                # with open('input/data/train/melina/melina.jpeg', "rb") as img:
-                #     stringImage = base64.b64encode(
-                #         img.read()).decode('utf-8')
-                #     response = requests.post(
-                #         url='localhost:8080/consulta/pessoa/reconhecimento', json={'user_photo': stringImage})
-
-                # return send_from_directory('input/data/train/melina',
-                #                            'melina.jpeg')
                     return jsonify(texto, name)
-                except (IndexError) as error:
+                except (IndexError, ValueError, Exception) as error:
                     return jsonify(error.args[0], '')
 
             else:
@@ -167,9 +157,17 @@ def identificar():
             return jsonify('Não foi recebida uma imagem válida', '')
 
 
-@ app.route('/<filename>')
+
+@app.route('/<filename>')
 def send_uploaded_file(filename=''):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-app.run(host='0.0.0.0', port='5001')
+@app.route('/teste', methods=['GET', 'POST'])
+def teste():
+    return jsonify('ok'), 200
+
+
+# def run():
+app.run(host='0.0.0.0', port='5001', debug=True)
+ 
