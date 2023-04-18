@@ -133,6 +133,8 @@ def identificar():
         
     clean_folder(TARGET_FOLDER + '/')
     clean_folder(UPLOAD_FOLDER + '/')
+    texto = ''
+    name = ''
     if request.method == "POST":
         if request.files['image']:
             name_file = "identify.png"

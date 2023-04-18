@@ -14,7 +14,7 @@ import cv2
 print(mtcnn.__version__)
 
 
-MINIMUM_MATCH = 20
+MINIMUM_MATCH = 40
 
 
 # Ver direitinho depois
@@ -238,6 +238,7 @@ def get_embedding(model, face):
 
 
 def identify_new_face(model: SVC, in_encoder: LabelEncoder, out_encoder: LabelEncoder):
+    
     testX, testy = load_dataset('target/')
 
     # print(testX.shape, testy.shape)
@@ -262,12 +263,12 @@ def identify_new_face(model: SVC, in_encoder: LabelEncoder, out_encoder: LabelEn
     all_names = out_encoder.inverse_transform(array)
     # Verifica se a probabilidade    maior que 60%
     if (class_probability < MINIMUM_MATCH):
-        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados.',  ''
+        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados.', ''
     # texto, name = f' {predict_names[0]} , {round(class_probability, 2)} %', predict_names[0]
     else:
         name = predict_names[0].split("_")
         if len(name) > 0:
             name = " ".join(name)
-        texto = f'{round(class_probability, 2)}%'
+        texto = f'Probabilidade: {round(class_probability, 2)}%'
         print(texto, name, f'{round(class_probability, 2)}%')
     return texto, name
