@@ -9,11 +9,33 @@ from keras.models import load_model
 from mtcnn.mtcnn import MTCNN
 import numpy as np  # linear algebra
 import mtcnn
+import cv2
 
 print(mtcnn.__version__)
 
 
-MINIMUM_MATCH = 45
+MINIMUM_MATCH = 20
+
+
+# Ver direitinho depois
+def get_model_score(model: SVC, emdTestX, trainy, testy, emdTrainX_norm):
+    # normalize input vectors
+    in_encoder = Normalizer()
+    emdTestX_norm = in_encoder.transform(emdTestX)
+    # label encode targets
+    out_encoder = LabelEncoder()
+    out_encoder.fit(trainy)
+    trainy_enc = out_encoder.transform(trainy)
+    testy_enc = out_encoder.transform(testy)
+    # predict
+    yhat_train = model.predict(emdTrainX_norm)
+    yhat_test = model.predict(emdTestX_norm)
+    # score
+    score_train = accuracy_score(trainy_enc, yhat_train)
+    score_test = accuracy_score(testy_enc, yhat_test)
+    # summarize
+    print('Accuracy: train=%.3f, test=%.3f' %
+          (score_train*100, score_test*100))
 
 
 def create_model(emdTrainX, trainy, emdTestX, testy):
@@ -21,8 +43,15 @@ def create_model(emdTrainX, trainy, emdTestX, testy):
           (emdTrainX.shape[0], emdTestX.shape[0]))
     # normalize input vectors
     in_encoder = Normalizer()
-    emdTrainX_norm = in_encoder.transform(emdTrainX)
-    emdTestX_norm = in_encoder.transform(emdTestX)
+    try:
+       emdTrainX_norm = in_encoder.transform(emdTrainX)
+    except:
+        raise ValueError('Verifique se há dataset de teste','emdTrainX_norm')
+    
+    try:
+        emdTestX_norm = in_encoder.transform(emdTestX)
+    except:
+        raise ValueError('Verifique se há dataset de teste','emdTestX_norm')
     # label encode targets
     out_encoder = LabelEncoder()
     out_encoder.fit(trainy)
@@ -57,21 +86,48 @@ def get_embedding(model, face):
     return yhat[0]
 
 
-def train_dataset():
-    # load train dataset
-    trainX, trainy = load_dataset('./input/data/train/')
-    print(trainX.shape, trainy.shape)
+def train_test_dataset():
     # load test dataset
     testX, testy = load_dataset('./input/data/test/')
+    
     # print(testX.shape, testy.shape)
+    if len(testy) == 0:
+         raise vars('Verifique se há arquivos de teste', 'testy')
+    # save and compress the dataset for further use
+    #np.savez_compressed('geocontrol_test.npz', testX, testy)
+    # load the face dataset
+    # data = np.load('geocontrol_test.npz')
+    # testX, testy = data['arr_0'], data['arr_1']
+    print('Loaded TESTS: ', testX.shape, testy.shape)
+    # load the facenet model
+    facenet_model = load_model('./models/facenet_keras.h5')
+    print('Loaded Model')
+
+    # convert each face in the test set into embedding
+    emdTestX = list()
+    for face in testX:
+        emd = get_embedding(facenet_model, face)
+        emdTestX.append(emd)
+
+    emdTestX = np.asarray(emdTestX)
+    print('EMDTESTX ************************************', emdTestX.shape)
+    return emdTestX, testy
+
+
+
+def train_train_dataset():
+    # load train dataset
+
+    trainX, trainy = load_dataset('./input/data/train/')
+    print(trainX.shape, trainy.shape)
 
     # # save and compress the dataset for further use
-    # np.savez_compressed('geocontrol.npz', trainX, trainy, testX, testy)
+    # np.savez_compressed('geocontrol_train.npz', trainX, trainy)
 
     # # load the face dataset
-    # data = np.load('geocontrol.npz')
-    # trainX, trainy, testX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
-    print('Loaded: ', trainX.shape, trainy.shape, testX.shape, testy.shape)
+    # data = np.load('geocontrol_train.npz')
+    # trainX, trainy = data['arr_0'], data['arr_1']
+    print('Loaded: ', trainX.shape, trainy.shape,)
     # load the facenet model
     facenet_model = load_model('./models/facenet_keras.h5')
     print('Loaded Model')
@@ -82,26 +138,20 @@ def train_dataset():
         emdTrainX.append(emd)
     emdTrainX = np.asarray(emdTrainX)
     print('EMDTRAINX ************************************', emdTrainX.shape)
-    # convert each face in the test set into embedding
-    emdTestX = list()
-    for face in testX:
-        emd = get_embedding(facenet_model, face)
-        emdTestX.append(emd)
 
-    emdTestX = np.asarray(emdTestX)
-    print('EMDTESTX ************************************', emdTestX.shape)
+    # save arrays to one file in compressed format
+    # np.savez_compressed('geocontrol-embeddings_train.npz',
+    #                     emdTrainX, trainy)
+    return emdTrainX, trainy
+
+
+def train_dataset():
+    emdTrainX, trainy = train_train_dataset()
+    emdTestX, testy = train_test_dataset()
     # save arrays to one file in compressed format
     np.savez_compressed('geocontrol-embeddings.npz',
                         emdTrainX, trainy, emdTestX, testy)
 
-    model, in_encoder, out_encoder = create_model(
-        emdTrainX, trainy, emdTestX, testy)
-    return model, in_encoder, out_encoder
-    # texto = face_recognition.identify_new_face(model, in_encoder, out_encoder)
-    # return texto
-    # plt.imshow(photo)
-    # plt.title(id)
-    # plt.show()
 
 
 def extract_face(filename, required_size=(160, 160)):
@@ -159,7 +209,19 @@ def load_dataset(dir):
               (len(faces), subdir))  # print progress
         X.extend(faces)
         y.extend(labels)
+
     return np.asarray(X), np.asarray(y)
+
+
+def apply_gaussian_blur(dir):
+    for subdir in os.listdir(dir):
+        path = os.path.join(dir, subdir) + '/'
+        for filename in os.listdir(path):
+            print(os.path.join(path, filename))
+            img = cv2.imread(os.path.join(path, filename))
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            cv2.imwrite(os.path.join(path, filename), gray)
 
 
 def get_embedding(model, face):
@@ -175,13 +237,10 @@ def get_embedding(model, face):
     return yhat[0]
 
 
-def to_map(predicted_name: str, probability: str):
-    return {predicted_name, probability}
-
-
-def identify_new_face(model, in_encoder, out_encoder):
+def identify_new_face(model: SVC, in_encoder: LabelEncoder, out_encoder: LabelEncoder):
     testX, testy = load_dataset('target/')
-    print(testX.shape, testy.shape)
+
+    # print(testX.shape, testy.shape)
     facenet_model = load_model('./models/facenet_keras.h5')
     emdTestX = list()
     for face in testX:
@@ -197,14 +256,18 @@ def identify_new_face(model, in_encoder, out_encoder):
     class_index = yhat_class[0]
     class_probability = yhat_prob[0, class_index] * 100
     predict_names = out_encoder.inverse_transform(yhat_class)
-    # Cria array de acordo com o n  mero das labels
+    # Cria array de acordo com a qtdade de labels (y)
     number_dir = len(next(os.walk(os.path.join('./input/data/train')))[1])
     array = np.arange(number_dir)
     all_names = out_encoder.inverse_transform(array)
     # Verifica se a probabilidade    maior que 60%
     if (class_probability < MINIMUM_MATCH):
-        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados', ''
+        texto, name = f'Não houve nenhuma correspondência com mais de {MINIMUM_MATCH}% na base de dados.',  ''
     # texto, name = f' {predict_names[0]} , {round(class_probability, 2)} %', predict_names[0]
     else:
-        texto, name = f'{round(class_probability, 2)}%', predict_names[0]
+        name = predict_names[0].split("_")
+        if len(name) > 0:
+            name = " ".join(name)
+        texto = f'{round(class_probability, 2)}%'
+        print(texto, name, f'{round(class_probability, 2)}%')
     return texto, name

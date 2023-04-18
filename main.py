@@ -219,12 +219,6 @@ def run_test():
     # plt.show()
 
 
-def run():
-    emdTrainX, trainy = run_train_dataset()
-    emdTestX, testy = run_test_dataset()
-    texto = run_test()
-    return texto
-
 
 app = Flask(__name__, template_folder='templates')
 
@@ -238,10 +232,10 @@ app.config["CACHE_TYPE"] = "null"
 
 def identify_face():
     # load the face dataset
-    data = np.load('geocontrol-embeddings.npz')
-    emdTrainX, trainy, emdTestX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
+    data = np.load('geocontrol-embeddings_train.npz')
+    emdTrainX, trainy = data['arr_0'], data['arr_1']
     model, in_encoder, out_encoder = face_recognition.create_model(
-        emdTrainX, trainy, emdTestX, testy)
+        emdTrainX, trainy,)
     texto, name = face_recognition.identify_new_face(
         model, in_encoder, out_encoder)
     return texto, name
@@ -363,4 +357,7 @@ def send_uploaded_file(filename=''):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
+
+# def run():
 app.run(host='0.0.0.0', port='5001')
+
